@@ -1,0 +1,222 @@
+#include <iostream>
+#include <unordered_map>
+#include <queue>
+#include <vector>
+#include <algorithm>
+#include <string>
+
+using namespace std;
+
+// Account class representing a bank account
+class Account {
+private:
+    int accountNumber;
+    string accountHolderName;
+    double balance;
+
+public:
+    // Default constructor
+    Account() : accountNumber(0), accountHolderName(""), balance(0.0) {}
+
+    // Parameterized constructor
+    Account(int accNum, string accName, double initialDeposit)
+        : accountNumber(accNum), accountHolderName(accName), balance(initialDeposit) {}
+
+    int getAccountNumber() const { return accountNumber; }
+    string getAccountHolderName() const { return accountHolderName; }
+    double getBalance() const { return balance; }
+
+    void displayAccountInfo() const {
+        cout << "Account Number: " << accountNumber << "\n"
+             << "Account Holder: " << accountHolderName << "\n"
+             << "Balance: $" << balance << "\n";
+    }
+
+    void deposit(double amount) {
+        if (amount > 0) {
+            balance += amount;
+            cout << "Deposited: $" << amount << "\n";
+        } else {
+            cout << "Invalid deposit amount.\n";
+        }
+    }
+
+    bool withdraw(double amount) {
+        if (amount > 0 && amount <= balance) {
+            balance -= amount;
+            cout << "Withdrawn: $" << amount << "\n";
+            return true;
+        } else {
+            cout << "Insufficient funds.\n";
+            return false;
+        }
+    }
+};
+
+// Transaction struct to store transaction details
+struct Transaction {
+    int accountNumber;
+    double amount;
+    string type;
+
+    Transaction(int accNum, double amt, string t)
+        : accountNumber(accNum), amount(amt), type(t) {}
+};
+
+// Banking System Class
+class BankingSystem {
+private:
+    unordered_map<int, Account> accountMap;
+    vector<Account> accounts;
+    queue<Transaction> transactionQueue;
+    int nextAccountNumber = 1001;
+
+    Account* findAccount(int accountNumber) {
+        if (accountMap.find(accountNumber) != accountMap.end()) {
+            return &accountMap[accountNumber];
+        }
+        cout << "Account not found.\n";
+        return nullptr;
+    }
+
+public:
+    void createAccount(string name, double initialDeposit) {
+        Account newAccount(nextAccountNumber, name, initialDeposit);
+        accounts.push_back(newAccount);
+        accountMap[nextAccountNumber] = newAccount;
+        cout << "Account created successfully. Account Number: " << nextAccountNumber << "\n";
+        nextAccountNumber++;
+    }
+
+    void processTransaction() {
+        while (!transactionQueue.empty()) {
+            Transaction t = transactionQueue.front();
+            transactionQueue.pop();
+
+            Account* acc = findAccount(t.accountNumber);
+            if (!acc) continue;
+
+            if (t.type == "deposit") {
+                acc->deposit(t.amount);
+            } else if (t.type == "withdraw") {
+                acc->withdraw(t.amount);
+            }
+        }
+    }
+
+    void deposit(int accountNumber, double amount) {
+        transactionQueue.push(Transaction(accountNumber, amount, "deposit"));
+    }
+
+    void withdraw(int accountNumber, double amount) {
+        transactionQueue.push(Transaction(accountNumber, amount, "withdraw"));
+    }
+
+    void transferFunds(int fromAccount, int toAccount, double amount) {
+        Account* sender = findAccount(fromAccount);
+        Account* receiver = findAccount(toAccount);
+
+        if (sender && receiver && sender->getBalance() >= amount) {
+            sender->withdraw(amount);
+            receiver->deposit(amount);
+            cout << "Transfer successful.\n";
+        } else {
+            cout << "Transfer failed. Check account details and balance.\n";
+        }
+    }
+
+    void displayAccountInfo(int accountNumber) {
+        Account* acc = findAccount(accountNumber);
+        if (acc) acc->displayAccountInfo();
+    }
+
+    void generateReport() {
+        sort(accounts.begin(), accounts.end(), [](const Account& a, const Account& b) {
+            return a.getBalance() > b.getBalance();
+        });
+
+        cout << "\nSorted Account Report:\n";
+        for (const auto& acc : accounts) {
+            acc.displayAccountInfo();
+            cout << "--------------------------------\n";
+        }
+    }
+};
+
+// Main Function
+int main() {
+    BankingSystem bank;
+    int choice;
+
+    while (true) {
+        cout << "\nBanking Management System Menu\n";
+        cout << "1. Create Account\n2. Deposit\n3. Withdraw\n4. Transfer Funds\n5. Display Account Info\n6. Generate Report\n7. Process Transactions\n8. Exit\n";
+        cout << "Enter choice: ";
+        cin >> choice;
+
+        if (choice == 1) {
+            string name;
+            double initialDeposit;
+            cout << "Enter account holder name: ";
+            cin.ignore();  // Clear newline from the input buffer
+            getline(cin, name);
+            cout << "Enter initial deposit: ";
+            cin >> initialDeposit;
+            bank.createAccount(name, initialDeposit);
+        }
+        else if (choice == 2) {
+            int accNum;
+            double amount;
+            cout << "Enter account number: ";
+            cin >> accNum;
+            cout << "Enter amount to deposit: ";
+            cin >> amount;
+            bank.deposit(accNum, amount);
+        }
+        else if (choice == 3) {
+            int accNum;
+            double amount;
+            cout << "Enter account number: ";
+            cin >> accNum;
+            cout << "Enter amount to withdraw: ";
+            cin >> amount;
+            bank.withdraw(accNum, amount);
+        }
+        else if (choice == 4) {
+            int fromAcc, toAcc;
+            double amount;
+            cout << "Enter sender account number: ";
+            cin >> fromAcc;
+            cout << "Enter receiver account number: ";
+            cin >> toAcc;
+            cout << "Enter amount to transfer: ";
+            cin >> amount;
+            bank.transferFunds(fromAcc, toAcc, amount);
+        }
+        else if (choice == 5) {
+            int accNum;
+            cout << "Enter account number: ";
+            cin >> accNum;
+            bank.displayAccountInfo(accNum);
+        }
+        else if (choice == 6) {
+            bank.generateReport();
+        }
+        else if (choice == 7) {
+            bank.processTransaction();
+        }
+        else if (choice == 8) {
+            cout << "Exiting program. Goodbye!\n";
+            break;
+        }
+        else {
+            cout << "Invalid choice. Please try again.\n";
+        }
+
+        cout << "\nPress Enter to return to the menu...";
+        cin.ignore(); // Clear input buffer
+        cin.get();    // Wait for user to press Enter
+    }
+
+    return 0;
+}
